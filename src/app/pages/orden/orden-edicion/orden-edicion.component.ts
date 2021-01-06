@@ -1,0 +1,152 @@
+import { Component, OnInit } from '@angular/core';
+import { FormControl, FormGroup } from '@angular/forms';
+import { Observable } from 'rxjs';
+import { Articulo } from 'src/app/_model/articulo';
+import { Cliente } from 'src/app/_model/cliente';
+import { Orden } from 'src/app/_model/orden';
+import { ArticuloService } from 'src/app/_service/articulo.service';
+import { ClienteService } from 'src/app/_service/cliente.service';
+import { OrdenService } from 'src/app/_service/orden.service';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { DetalleOrden } from 'src/app/_model/detalleOrden';
+
+@Component({
+  selector: 'app-orden-edicion',
+  templateUrl: './orden-edicion.component.html',
+  styleUrls: ['./orden-edicion.component.css']
+})
+export class OrdenEdicionComponent implements OnInit {
+
+  form: FormGroup;
+  clientes: Cliente[] = [];
+  articulos: Articulo[] = [];
+
+  mensaje: string;
+
+  clienteSeleccionado: Cliente;
+  articuloSeleccionado: Articulo;
+
+  idClienteSeleccionado: number;
+  idArticuloSeleccionado: number;
+
+  fechaSeleccionada: Date = new Date();
+
+  articulosSeleccionados: Articulo[] = [];
+
+  filteredOptionsCliente: Observable<any[]>;
+
+  constructor(private ordenService: OrdenService, private clienteService: ClienteService, private articuloService: ArticuloService,
+    private snackBar: MatSnackBar) { }
+
+  ngOnInit(): void {
+    this.form = new FormGroup({
+      'cliente': new FormControl(),
+      'fecha': new FormControl(new Date()),
+    });
+
+
+    this.listarClientes();
+    this.listarArticulos();
+  }
+
+  agregarArticulo() {
+    if (this.idArticuloSeleccionado > 0) {
+
+      let cont = 0;
+      for (let i = 0; i < this.articulosSeleccionados.length; i++) {
+        let articulo = this.articulosSeleccionados[i];
+        if (articulo.idArticulo === this.idArticuloSeleccionado) {
+          cont++;
+          break;
+        }
+      }
+
+      if (cont > 0) {
+        this.mensaje = 'El articulo se encuentra en la lista';
+        this.snackBar.open(this.mensaje, "Aviso", { duration: 2000 });
+      } else {
+        let articulo = new Articulo();
+        articulo.idArticulo = this.idArticuloSeleccionado;
+
+        this.articuloService.obtenerPorId(this.idArticuloSeleccionado).subscribe(data => {
+          articulo.nombre = data.nombre;
+          articulo.codigo = data.codigo;
+          this.articulosSeleccionados.push(articulo);
+        });
+      }
+    } else {
+      this.mensaje = 'Debe agregar un articulo';
+      this.snackBar.open(this.mensaje, "Aviso", { duration: 2000 });
+    }
+  }
+
+  removerArticulo(index: number) {
+    this.articulosSeleccionados.splice(index, 1);
+  }
+
+  estadoBotonRegistrar(){}
+
+  aceptar(){
+    let cliente = new Cliente();
+    cliente.idCliente = this.idClienteSeleccionado;
+
+    let orden = new Orden();
+    orden.cliente = cliente
+
+    let tzoffset = (new Date(this.fechaSeleccionada)).getTimezoneOffset() * 60000;
+    let localISOTime = (new Date(Date.now() - tzoffset)).toISOString();
+    debugger;
+    orden.fecha = localISOTime;
+    let detalleOrden = [];
+    this.articulosSeleccionados.forEach(articulo => {
+      let detalle = new DetalleOrden();
+      detalle.articulo = articulo;
+      detalleOrden.push(detalle);
+    });
+
+    orden.detalleOrden = detalleOrden;
+
+    this.ordenService.registrar(orden).subscribe(() => {
+      this.snackBar.open("Se registró", "Aviso", { duration: 2000 });
+      this.ordenService.listar().subscribe(data => {
+        this.ordenService.ordenCambio.next(data);
+      });
+      setTimeout(() => {
+        this.limpiarControles();
+      }, 1000);
+    });
+
+  }
+
+  limpiarControles() {
+    this.articulosSeleccionados = [];
+    this.idClienteSeleccionado = 0;
+    this.fechaSeleccionada = new Date();
+    this.fechaSeleccionada.setHours(0);
+    this.fechaSeleccionada.setMinutes(0);
+    this.fechaSeleccionada.setSeconds(0);
+    this.fechaSeleccionada.setMilliseconds(0);
+    this.mensaje = '';
+  }
+
+  listarClientes() {
+    this.clienteService.listar().subscribe(data => {
+      this.clientes = data;
+    });
+  }
+
+  listarArticulos() {
+    this.articuloService.listar().subscribe(data => {
+      this.articulos = data;
+    });
+  }
+
+  seleccionarCliente(e: any) {
+    this.clienteSeleccionado = e.option.value;
+  }
+
+  seleccionarArticulo(e: any) {
+    this.articuloSeleccionado = e.option.value;
+  }
+
+}
