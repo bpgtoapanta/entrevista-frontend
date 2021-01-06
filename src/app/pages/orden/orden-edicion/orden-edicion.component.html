@@ -14,17 +14,17 @@
         <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
         <mat-datepicker #picker></mat-datepicker>
     </mat-form-field>
-    <br/> Seleccione el articulo
+    <br/> Seleccione el artículo
 
     <mat-form-field>
-        <mat-select placeholder="Articulo" [(value)]="idArticuloSeleccionado">
+        <mat-select placeholder="Artículo" [(value)]="idArticuloSeleccionado">
             <mat-option *ngFor="let art of articulos" [value]="art.idArticulo">
                 {{ art.nombre }}
             </mat-option>
         </mat-select>
     </mat-form-field>
 
-    <button mat-raised-button color="primary" (click)="agregarArticulo()">Agregar Articulo</button>
+    <button mat-raised-button color="primary" (click)="agregarArticulo()">Agregar Artículo</button>
     <mat-toolbar *ngFor="let d of articulosSeleccionados; let i=index">
         {{d.nombre}}
         <span class="example-spacer"></span>
